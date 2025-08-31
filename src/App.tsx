@@ -1,34 +1,84 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useEffect, useState } from "react";
 import './App.css'
 
+// `movieList`の型定義
+type Movie = {
+  id: string;
+  original_title: string;
+  poster_path: string;
+  overview: string;
+};
+
+// TMDB APIからのレスポンスの型定義
+type MovieJson = {
+  adult: boolean;
+  backdrop_path: string | null;
+  genre_ids: number[];
+  id: string;
+  original_language: string;
+  original_title: string;
+  overview: string;
+  popularity: number;
+  poster_path: string | null;
+  release_date: string;
+  title: string;
+  video: boolean;
+  vote_average: number;
+  vote_count: number;
+};
+
 function App() {
-  const [count, setCount] = useState(0)
+
+  // TMDB APIから映画データを取得する関数
+  const fetchMovieList = async () => {
+    const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+    let url = "";
+    if (keyword) {
+      url = `https://api.themoviedb.org/3/search/movie?query=${keyword}&include_adult=false&language=ja&page=1`;
+    } else {
+      url = "https://api.themoviedb.org/3/movie/popular?language=ja&page=1";
+    }
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+      },
+    });
+    const data = await response.json();
+    const result = data.results;
+    const movieList = result.map((movie: MovieJson) => ({
+      id: movie.id,
+      original_title: movie.title,
+      poster_path: movie.poster_path,
+      overview: movie.overview,
+    }));
+    setMovieList(movieList);
+  };
+
+  const [keyword, setKeyword] = useState<string>("example value");
+  const [movieList, setMovieList] = useState<Movie[]>([]);
+
+  useEffect(() => {
+    fetchMovieList();
+  }, [keyword]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div>
+      <input type="text" onChange={(e) => (setKeyword(e.target.value))} />
+      <div>{keyword}</div>
+
+      {movieList
+        .filter((movie) => movie.original_title.includes(keyword))
+        .map((movie) => (
+          <div key={movie.id}>
+            <h2>{movie.original_title}</h2>
+            <img
+              src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+              alt={movie.original_title}
+            />
+            <p>{movie.overview}</p>
+          </div>
+        ))}
+    </div>
   )
 }
 
